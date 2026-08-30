@@ -18,42 +18,39 @@
             margin: 0;
             padding: 20px;
         }
-        #flash-box {
-            width: 220px;
-            height: 220px;
+        #flash-screen {
+            width: 260px;
+            height: 260px;
             border-radius: 20px;
-            background-color: #111;
-            border: 2px solid #222;
+            background-color: #000;
+            border: 3px solid #333;
             display: flex;
             align-items: center;
             justify-content: center;
             margin-bottom: 25px;
-            transition: background-color 0.05s ease;
+            transition: background-color 0.02s linear;
         }
-        #flash-icon { font-size: 50px; color: #333; transition: transform 0.05s ease, color 0.05s ease; }
+        #flash-icon { font-size: 60px; color: #333; }
         .btn-group { display: flex; flex-direction: column; gap: 12px; width: 100%; max-width: 300px; }
         button {
-            width: 100%; padding: 15px; font-size: 15px; font-weight: bold;
+            width: 100%; padding: 16px; font-size: 15px; font-weight: bold;
             border: none; border-radius: 10px; cursor: pointer;
-            transition: opacity 0.2s ease;
         }
-        .btn-init { background-color: #28a745; color: #fff; margin-bottom: 15px; }
         .btn-l1 { background-color: #ffc107; color: #000; }
         .btn-l2 { background-color: #00e5ff; color: #000; }
         button:disabled { opacity: 0.5; cursor: not-allowed; }
         #status { margin-top: 15px; font-size: 14px; color: #888; text-align: center; font-family: monospace; }
-        #mode-desc { margin-bottom: 15px; font-size: 13px; color: #666; text-align: center; }
+        #mode-desc { margin-bottom: 15px; font-size: 13px; color: #aaa; text-align: center; }
     </style>
 </head>
 <body>
 
-    <div id="mode-desc">Tap 'Enable Flashlight Hardware' to start</div>
-    <div id="flash-box"><div id="flash-icon">⚡</div></div>
+    <div id="mode-desc">Point phone screen directly at laptop webcam</div>
+    <div id="flash-screen"><div id="flash-icon">⚡</div></div>
 
     <div class="btn-group">
-        <button id="init-btn" class="btn-init" onclick="initSamsungCamera()">Enable Flashlight Hardware</button>
-        <button id="tx-btn-1" class="btn-l1" onclick="transmitTokenForLock('LOCK_01')" disabled>Transmit Key for Lock 1</button>
-        <button id="tx-btn-2" class="btn-l2" onclick="transmitTokenForLock('LOCK_02')" disabled>Transmit Key for Lock 2</button>
+        <button id="tx-btn-1" class="btn-l1" onclick="transmitTokenForLock('LOCK_01')">Transmit Key for Lock 1</button>
+        <button id="tx-btn-2" class="btn-l2" onclick="transmitTokenForLock('LOCK_02')">Transmit Key for Lock 2</button>
     </div>
 
     <div id="status">Ready</div>
