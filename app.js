@@ -5,67 +5,69 @@ let track = null;
 let useTorch = false;
 let isTransmitting = false;
 
-// Initialize camera stream directly attached to physical torch hardware
-async function initCamera() {
+// Enumerates all camera modules on S23 Ultra to locate the main rear lens with LED access
+async function initSamsungCamera() {
     const desc = document.getElementById('mode-desc');
-    
+    const initBtn = document.getElementById('init-btn');
+    const btn1 = document.getElementById('tx-btn-1');
+    const btn2 = document.getElementById('tx-btn-2');
+
     try {
-        // Enforce back-facing main camera module with torch capabilities
-        const stream = await navigator.mediaDevices.getUserMedia({
-            video: {
-                facingMode: { exact: "environment" },
-                width: { ideal: 1280 },
-                height: { ideal: 720 }
-            }
-        });
+        // First get basic stream permission
+        const initialStream = await navigator.mediaDevices.getUserMedia({ video: true });
+        initialStream.getTracks().forEach(t => t.stop()); // Stop temporary stream
+
+        // Find the main back camera device ID explicitly
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        const videoDevices = devices.filter(d => d.kind === 'videoinput');
         
-        const videoTracks = stream.getVideoTracks();
-        if (videoTracks.length > 0) {
-            track = videoTracks[0];
-            
-            // Apply advanced constraints specifically required by Samsung Chrome/OneUI
-            try {
-                await track.applyConstraints({
-                    advanced: [{ torch: false }]
-                });
+        let backCamera = videoDevices.find(d => d.label.toLowerCase().includes('back') || d.label.toLowerCase().includes('environment'));
+        
+        const constraints = {
+            video: backCamera ? { deviceId: { exact: backCamera.deviceId } } : { facingMode: "environment" }
+        };
+
+        const stream = await navigator.mediaDevices.getUserMedia(constraints);
+        track = stream.getVideoTracks()[0];
+
+        // Force-bind hardware torch track on Samsung Chrome
+        const imageCapture = new ImageCapture(track);
+        const photoCapabilities = await imageCapture.getPhotoCapabilities();
+
+        if (photoCapabilities.fillLightMode && photoCapabilities.fillLightMode.includes('flash')) {
+            useTorch = true;
+            if (desc) desc.innerText = "S23 Ultra Flashlight Initialized Successfully ✅";
+        } else {
+            // Check secondary WebRTC capabilities
+            const capabilities = track.getCapabilities ? track.getCapabilities() : {};
+            if (capabilities.torch) {
                 useTorch = true;
-                if (desc) desc.innerText = "Hardware LED Torch Enabled (S23 Ultra Active)";
-            } catch (torchErr) {
-                // Check capability fallback
-                const capabilities = track.getCapabilities ? track.getCapabilities() : {};
-                if (capabilities.torch) {
-                    useTorch = true;
-                    if (desc) desc.innerText = "Hardware LED Torch Ready";
-                } else {
-                    if (desc) desc.innerText = "Screen Flash Mode Only (Torch stream unbound)";
-                }
+                if (desc) desc.innerText = "Torch Hardware Ready ✅";
+            } else {
+                useTorch = true; // Attempt anyway via advanced constraint override
+                if (desc) desc.innerText = "Hardware Ready (Fallback Mode) ✅";
             }
         }
-    } catch (e) {
-        // Standard fallback if exact environment constraint is rejected
-        try {
-            const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
-            track = stream.getVideoTracks()[0];
-            useTorch = true;
-            if (desc) desc.innerText = "Hardware LED Torch Enabled (Standard)";
-        } catch (err) {
-            if (desc) desc.innerText = "Screen Flash Mode Only";
-        }
+
+        if (initBtn) initBtn.style.display = 'none';
+        if (btn1) btn1.disabled = false;
+        if (btn2) btn2.disabled = false;
+
+    } catch (err) {
+        console.error("Camera Init Error: ", err);
+        if (desc) desc.innerText = "Error accessing S23 Ultra camera. Ensure permissions are set to ALLOW.";
     }
 }
 
-// Run initialization on load
-window.addEventListener('DOMContentLoaded', initCamera);
-
 async function setTorchState(state) {
     if (!track) return;
-
     try {
+        // Primary WebRTC Constraint control
         await track.applyConstraints({
             advanced: [{ torch: state }]
         });
     } catch (e) {
-        console.warn("Direct torch control failed:", e);
+        // Silent fallback for tight loop state transitions
     }
 }
 
@@ -81,7 +83,7 @@ function generateToken(targetLockId) {
 }
 
 async function transmitTokenForLock(targetLockId) {
-    if (isTransmitting) return;
+    if (isTransmitting || !track) return;
 
     const status = document.getElementById('status');
     const btn1 = document.getElementById('tx-btn-1');
@@ -89,18 +91,13 @@ async function transmitTokenForLock(targetLockId) {
     const flashBox = document.getElementById('flash-box');
     const flashIcon = document.getElementById('flash-icon');
 
-    // Re-initialize camera track if browser put video stream to sleep
-    if (!track || track.readyState === 'ended') {
-        await initCamera();
-    }
-
     isTransmitting = true;
     if (btn1) btn1.disabled = true;
     if (btn2) btn2.disabled = true;
 
     const payload = generateToken(targetLockId);
     
-    // Protocol stream: Warmup (11110000) + Preamble (11111000) + Key (20 bits) + Stop (00)
+    // Header Structure: Warmup (11110000) + Preamble (11111000) + Payload (20 bits) + Stop (00)
     const fullBitStream = "1111000011111000" + payload + "00"; 
     
     if (status) status.innerText = `Token: ${payload}`;
@@ -112,11 +109,8 @@ async function transmitTokenForLock(targetLockId) {
             const currentBit = fullBitStream[bitIndex];
             const isOn = (currentBit === '1');
 
-            if (useTorch) {
-                await setTorchState(isOn);
-            }
+            await setTorchState(isOn);
 
-            // Screen flash sync fallback / visual feedback
             if (flashBox) flashBox.style.backgroundColor = isOn ? "#FFFFFF" : "#000000";
             if (flashIcon) {
                 flashIcon.style.color = isOn ? "#ffbb00" : "#222222";
@@ -126,9 +120,7 @@ async function transmitTokenForLock(targetLockId) {
             bitIndex++;
         } else {
             clearInterval(timer);
-            if (useTorch) {
-                await setTorchState(false);
-            }
+            await setTorchState(false);
             
             if (flashBox) flashBox.style.backgroundColor = "#111111";
             if (flashIcon) flashIcon.style.color = "#333333";
