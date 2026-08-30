@@ -37,20 +37,23 @@
             border: none; border-radius: 10px; cursor: pointer;
             transition: opacity 0.2s ease;
         }
+        .btn-init { background-color: #28a745; color: #fff; margin-bottom: 15px; }
         .btn-l1 { background-color: #ffc107; color: #000; }
         .btn-l2 { background-color: #00e5ff; color: #000; }
         button:disabled { opacity: 0.5; cursor: not-allowed; }
         #status { margin-top: 15px; font-size: 14px; color: #888; text-align: center; font-family: monospace; }
-        #mode-desc { margin-bottom: 15px; font-size: 13px; color: #666; }
+        #mode-desc { margin-bottom: 15px; font-size: 13px; color: #666; text-align: center; }
     </style>
 </head>
 <body>
 
-    <div id="mode-desc">Detecting Flashlight hardware...</div>
+    <div id="mode-desc">Tap 'Enable Flashlight Hardware' to start</div>
     <div id="flash-box"><div id="flash-icon">⚡</div></div>
 
     <div class="btn-group">
-        <button id="tx-btn-2" class="btn-l2" onclick="transmitTokenForLock('LOCK_02')">Transmit Key for Lock 2</button>
+        <button id="init-btn" class="btn-init" onclick="initSamsungCamera()">Enable Flashlight Hardware</button>
+        <button id="tx-btn-1" class="btn-l1" onclick="transmitTokenForLock('LOCK_01')" disabled>Transmit Key for Lock 1</button>
+        <button id="tx-btn-2" class="btn-l2" onclick="transmitTokenForLock('LOCK_02')" disabled>Transmit Key for Lock 2</button>
     </div>
 
     <div id="status">Ready</div>
