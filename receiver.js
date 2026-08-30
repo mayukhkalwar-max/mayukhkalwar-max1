@@ -1,5 +1,5 @@
 const SHARED_SECRET = "MY_SECRET_KEY_123";
-const DEVICE_LOCK_ID = "LOCK_01"; 
+const DEVICE_LOCK_ID = "LOCK_02"; 
 
 const BIT_DURATION_MS = 194; 
 
